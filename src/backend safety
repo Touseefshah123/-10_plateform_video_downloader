@@ -1,0 +1,178 @@
+const express = require("express");
+const router = express.Router();
+const fs = require("fs");
+const cluster = require("cluster");
+const path = require("path");
+const getDateFormat = require("../utils/getDateFormat");
+const { download } = require("../utils/downloadManager");
+const Download = require("../mod/download");
+const ytdl = require("ytdl-core");
+
+const cpuCount = require("os").cpus().length;
+
+// Recursive function to get all files in a directory and its subdirectories
+function getFilesRecursively(directory) {
+	const files = [];
+	const contents = fs.readdirSync(directory);
+
+	contents.forEach((item) => {
+		const fullPath = path.join(directory, item);
+
+		if (fs.statSync(fullPath).isDirectory()) {
+			// Recursively get files from subdirectories
+			files.push(...getFilesRecursively(fullPath));
+		} else {
+			files.push(fullPath);
+		}
+	});
+
+	return files;
+}
+// Function to delete a folder and its contents
+function deleteFolderRecursive(folderPath) {
+	if (fs.existsSync(folderPath)) {
+		fs.readdirSync(folderPath).forEach((file) => {
+			const curPath = path.join(folderPath, file);
+			if (fs.lstatSync(curPath).isDirectory()) {
+				// Recursive call to delete subfolders
+				deleteFolderRecursive(curPath);
+			} else {
+				// Delete files
+				fs.unlinkSync(curPath);
+			}
+		});
+		// Delete the main folder
+		fs.rmdirSync(folderPath);
+	}
+}
+
+let activeDownloadProcess = null;
+router.get("/youtube", async (req, res) => {
+	try {
+		const { url } = req.query;
+		if (!ytdl.validateURL(url)) {
+			return res.status(400).send("Invalid YouTube URL");
+		}
+		ytdl(url).pipe(res);
+	} catch (error) {
+		console.error(error);
+		res.status(500).send("Server Error");
+	}
+});
+
+router.post("/download", async (req, res) => {
+	try {
+		const userId = req.body.userId;
+
+		const downloadsFolder = `./downloads/${userId}`;
+		// Ensure the parent directory exists
+		if (!fs.existsSync(downloadsFolder)) {
+			fs.mkdirSync(downloadsFolder);
+		}
+
+		const timestampedFolder = `${downloadsFolder}/${getDateFormat()}`;
+		// Create the timestamped directory
+		fs.mkdirSync(timestampedFolder);
+
+		// Set write permissions for the folder
+		fs.chmodSync(timestampedFolder, "777");
+
+		// Schedule folder deletion after 5 minutes
+		setTimeout(() => {
+			deleteFolderRecursive(timestampedFolder);
+			console.log(`Deleted folder: ${timestampedFolder}`);
+		}, 10 * 60 * 1000);
+
+		const { url } = req.body;
+
+		if (!url) {
+			return res.status(400).json({ error: "URL is required" });
+		}
+		const downloadObj = new Download(
+			"single",
+			url,
+			"video",
+			cpuCount,
+			timestampedFolder
+		);
+
+		if (downloadObj.inputType === "playlist") {
+			cluster.settings = {
+				exec: "./utils/multiThreadDownload.js",
+			};
+
+			for (let i = 1; i <= cpuCount; i++) {
+				const childProcess = cluster.fork({
+					processId: i,
+					...downloadObj,
+				});
+
+				childProcess.disconnect();
+			}
+		} else {
+			activeDownloadProcess = download(
+				downloadObj.inputType,
+				downloadObj.url,
+				downloadObj.outputType,
+				downloadObj.cpuCount,
+				downloadObj.downloadsFolder
+			);
+		}
+		if (downloadObj) {
+			res.status(200).json({ message: "Downloading", downloadObj });
+			console.log(downloadObj.downloadsFolder);
+		}
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+router.get("/downloads/:userId", (req, res) => {
+	const userId = req.params.userId;
+	try {
+		const downloadsFolder = path.join(__dirname, `../downloads/${userId}`); // Adjust the path
+
+		// Ensure the downloads folder exists
+		if (!fs.existsSync(downloadsFolder)) {
+			return res.status(404).json({ error: "No downloads found" });
+		}
+
+		// Check for read permissions
+		try {
+			fs.accessSync(downloadsFolder, fs.constants.R_OK);
+		} catch (err) {
+			return res.status(403).json({
+				error: "Permission denied for accessing the downloads folder",
+			});
+		}
+
+		// Get all files recursively in the downloads folder
+		const allFiles = getFilesRecursively(downloadsFolder);
+
+		// Filter out files and consider only those with the .mp4 extension
+		const savedVideos = allFiles.filter((file) => {
+			return fs.statSync(file).isFile() && path.extname(file) === ".mp4";
+		});
+
+		console.log("All files in downloads folder:", allFiles);
+		console.log("Saved videos:", savedVideos);
+
+		res.status(200).json({ savedVideos });
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+router.get("/download/:file", (req, res) => {
+	const filePath = path.join(__dirname, "../downloads", req.params.file);
+	res.download(filePath, (err) => {
+		if (err) {
+			console.error(err);
+			res.status(500).send("Error downloading the file");
+		}
+	});
+});
+);
+
+module.exports = router;
