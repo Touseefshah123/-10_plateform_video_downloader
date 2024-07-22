@@ -1,0 +1,191 @@
+// router.post("/download", async (req, res) => {
+//   try {
+//     const userId = req.body.userId;
+     
+//     const downloadsFolder = `./downloads/${userId}`;
+//     // Ensure the parent directory exists
+//     if (!fs.existsSync(downloadsFolder)) {
+//       fs.mkdirSync(downloadsFolder);
+//     }'/
+
+//     const timestampedFolder = `${downloadsFolder}/${getDateFormat()}`;
+//     // Create the timestamped directory
+//     fs.mkdirSync(timestampedFolder);
+
+//     // Set write permissions for the folder
+//     fs.chmodSync(timestampedFolder, "777");
+
+//     // Schedule folder deletion after 5 minutes
+//     setTimeout(() => {
+//       deleteFolderRecursive(timestampedFolder);
+//       console.log(`Deleted folder: ${timestampedFolder}`);
+//     }, 10* 60 * 1000);
+
+//     const { url } = req.body;
+
+//     if (!url) {
+//       return res.status(400).json({ error: "URL is required" });
+//     }
+//     const downloadObj =  new Download(
+//       "single",
+//       url,
+//       "video",
+//       cpuCount,
+//       timestampedFolder
+//     );
+
+//     if (downloadObj.inputType === "playlist") {
+//       cluster.settings = {
+//         exec: "./utils/multiThreadDownload.js",
+//       };
+
+//       for (let i = 1; i <= cpuCount; i++) {
+//         const childProcess = cluster.fork({
+//           processId: i,
+//           ...downloadObj,
+//         });
+
+//         childProcess.disconnect();
+//       }
+//     } else {
+      
+//       activeDownloadProcess=download(
+//         downloadObj.inputType,
+//         downloadObj.url,
+//         downloadObj.outputType,
+//         downloadObj.cpuCount,
+//         downloadObj.downloadsFolder
+//       );
+//     }
+//     if(downloadObj){
+//       res
+//       .status(200)
+//       .json({ message:"Downloading", downloadObj });
+//     console.log(downloadObj.downloadsFolder);
+
+//     }
+    
+
+    
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
+
+
+///////
+//router.get("/downloads/:userId", (req, res) => {
+  //  const userId = req.params.userId;
+ 
+ 
+    // try {
+      //   const downloadsFolder = path.join(__dirname, `../downloads/${userId}`); // Adjust the path
+ 
+         // Ensure the downloads folder exists
+        // if (!fs.existsSync(downloadsFolder)) {
+          //   return res.status(404).json({ error: "No downloads found" });
+         //}
+ 
+         // Check for read permissions
+         //try {
+           //  fs.accessSync(downloadsFolder, fs.constants.R_OK);
+         //} catch (err) {
+           //  return res.status(403).json({
+             //    error: "Permission denied for accessing the downloads folder",
+             //});
+         //}
+ 
+         // Get all files recursively in the downloads folder
+         //const allFiles = getFilesRecursively(downloadsFolder);
+ 
+         // Filter out files and consider only those with the .mp4 extension
+         //const savedVideos = allFiles.filter((file) => {
+           //  return fs.statSync(file).isFile() && path.extname(file) === ".mp4";
+         //});
+ 
+         
+ 
+         //res.status(200).json({ savedVideos });
+     //} catch (error) {
+       //  console.error(error);
+        // res.status(500).json({ error: "Internal Server Error" });
+     //}
+ //});
+ //function sanitizeFilename(filename) {
+   //  return filename.replace(/[^a-zA-Z0-9.-]/g, "_");
+ //}
+ 
+ //router.post("/downloading",(req,res)=>{
+   // const {videoPath}=req.body;
+    //console.log("here",videoPath)
+   //try{
+        //  if (!videoPath) {
+             //		console.error("Video path is required");
+                 //	return res.status(400).json({ error: "Video path is required" });
+             //	}
+ 
+                 // Resolve the absolute path
+             //	const absoluteVideoPath = path.resolve(__dirname, "..", videoPath);
+             //	console.log("Resolved absoluteVideoPath:", absoluteVideoPath);
+ 
+                 // Check if the video file exists
+             //	if (!fs.existsSync(absoluteVideoPath)) {
+             //		console.error("Video file not found:", absoluteVideoPath);
+             //		return res.status(404).json({ error: "Video file not found" });
+             //	}
+ 
+                 // Sanitize the filename for the Content-Disposition header
+             //	const sanitizedFilename = sanitizeFilename(
+                 //	path.basename(absoluteVideoPath)
+             //	);
+ 
+                 // Read the video file and send it as a Blob
+             //	fs.readFile(absoluteVideoPath, (err, data) => {
+             //		if (err) {
+                 //		console.error("Error reading video file:", err);
+                 //		return res.status(500).json({ error: "Error reading video file" });
+                 //	}
+ 
+                     //res.setHeader("Content-Type", "video/mp4");
+                     //res.setHeader(
+                     //	"Content-Disposition",
+                     //	`attachment; filename="${sanitizedFilename}"`
+                     //);
+                 //	res.status(200).send(data);
+             //	});
+         //if (!videoPath) {
+           //          console.error("Video path is required");
+             //        return res.status(400).json({ error: "Video path is required" });
+               //  }
+ 
+                 //const absoluteVideoPath = path.resolve(__dirname, "..", videoPath);
+ 
+                 //if (!fs.existsSync(absoluteVideoPath)) {
+                   //  console.error("Video file not found:", absoluteVideoPath);
+                     //return res.status(404).json({ error: "Video file not found" });
+                 //}
+ 
+                 //const fileStream = fs.createReadStream(absoluteVideoPath);
+                 //const stats = fs.statSync(absoluteVideoPath);
+ 
+                 // res.setHeader("Content-Type", "video/mp4");
+                 //res.setHeader(
+                   //  "Content-Disposition",
+                     //`attachment; filename="${path.basename(absoluteVideoPath)}"`
+                 //);
+                 //res.setHeader("Content-Length", stats.size);
+                 //res.setHeader("Accept-Ranges", "bytes");
+ 
+                 //fileStream.pipe(res);
+ 
+ //  }catch(err){
+ 
+ //console.log(err)
+   //}
+    
+    
+    
+ 
+ 
